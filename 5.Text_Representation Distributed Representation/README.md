@@ -95,13 +95,21 @@
 	- Word2Vec은 사용자가 지정한 윈도우(주변 몇 단어) 내에서만 학습/분석이 이루어지므로 코퍼스 전체의 co-occurrence는 반영되기 어렵다는 단점이 있다.
 	- 따라서, 두 단어벡터의 내적이 코퍼스 전체에서의 동시 등장확률 로그값을 목적함수로 정의
 	- **임베딩된 단어벡터 간 유사도 측정을 수월하게 하면서도 말뭉치 전체의 통계 정보를 좀 더 잘 반영해보는 것이 핵심**
-
+	- **임베딩된 중심 단어와 주변 단어 벡터의 내적이 전체 코퍼스에서의 동시 등장 확률이 되도록 만드는 것**
 
 - Notations
 	- co-occurrence matrix (size: V x V)
-	- X_ij: word i와 j가 함께 등장한 빈도
-	- X_i : word i가 corpus에서 등장한 횟수
+	- X_ij: 학습 corpus(문장이나 문서) 윈도우 사이즈내에서 중심 word i 가 등장했을 때 word j가 등장한 빈도
+	- X_i : co-occurrence matrix에서 i행의 값을 모두 더한 값 (X_i1 + X_i2 + ... X_ik)
 	- P_ij : P(j|i) = X_ij / **X_i**  (분모가 X_i)
+	- P_ik = P(k|i) : **i번째 단어 주변(윈도우 크기는 지정)에 k번째 단어가 동시에 등장할 빈도수 / X_i**
+	- w_i : 중심 단어 i의 임베딩 벡터
+	- w_k : 주변 단어 k의 임베딩 벡터
+	
+- co-occurrence matrix 예시
+- ![glove_co-matrix](https://user-images.githubusercontent.com/46666862/80462374-91e16900-8971-11ea-8144-2a4d8650b743.PNG)
+
+
 	
 - Motivation
 	- 특정 k라는 단어가 i, j 두 단어 중 어떤 단어와 더 연관성이 클까에 대해서 생각을 해보면
@@ -129,7 +137,10 @@
 - Solution
 	- F(x) = exp(x)를 사용해 공식을 유도
 	- ![glove_solution](https://user-images.githubusercontent.com/46666862/80455685-31e5c500-8967-11ea-81f9-705b66817261.PNG)
-	- 가장 마지막 식을 보면 w_i(T)와 w_k의 내적(i와 k의 관계)과 상수항 텀이 log X_ik(co-occurrence matrix에서 구할 수 있는 i와 k가 동시에 등장하는 빈도)인 것을 알 수 있다.
+	- 빨간색 부분을 보면 log X_i가 b_i + b_k로 치환되어 있는데, 이는 i와 k가 바뀔경우 식이 달라지기 때문이다.
+	- log P_ik = log X_ik - log X_i 이고 ik가 바뀌면 log P_ki = log X_ki - log X_k가 된다.
+	- log X_ik - log X_i = log X_ki - log X_k 가 성립해야 하는데, 우변은 성립하지 않으므로 이를 상수항(b_i, b_k)로 처리해주어 이 조건을 만족하도록 식을 한 번 더 변환하였음.
+	- 그리고, 가장 마지막 식을 보면 w_i(T)와 w_k의 내적(i와 k의 관계)과 상수항 텀이 log X_ik(co-occurrence matrix에서 구할 수 있는 i와 k가 동시에 등장하는 빈도)인 것을 알 수 있다.
 	
 	
 - Objective Function
@@ -139,13 +150,27 @@
 	- f(x)에 관한 식은 아래와 같다.
 	- ![glove_f(x)](https://user-images.githubusercontent.com/46666862/80456361-6b6b0000-8968-11ea-8337-814bd884d0c2.PNG)
 	
+
 	
 	
+### 4) Word-level: FastText
+
+- NNLM, Word2Vec, Glove의 문제점 제기
+	- morphology(형태소)의 어미 변화가 심한 언어의 경우에는 적용하기가 힘들다. (터키어, 핀란드어)
 	
-	
-	
+- Goal
+	- 기존의 word-level, Token level에 대해서 임베딩을 했다면 대신, character-level의 n-grams을 학습시키자
+	- 단어를 n-gram 벡터의 총합이나 평균으로 표현하자.
 
 
+- Word2Vec의 기존 구조에 Subword Model을 적용
+
+- Subword Model
+	- n-gram의 크기를 3, 4, 5, 6으로 보통 사용함
+	- 예를들어, apple이 있으면 app, ppl, ple / appl, pple 이런식으로 각각 n-gram의 단어를 임베딩함
+	- 그렇게 각각 임베딩된 벡터들의 총합이나 평균을 apple이라는 word의 임베딩벡터로 사용
+	- app, appl은 같은 시퀀스를 포함하지만 서로 다른 벡터이다.
+	
 
 
 
